@@ -19,6 +19,7 @@ class Config:
     def load(self):
         self.client['community'] = self.config['general']['community']
         self.client['hostname'] = self.config['client']['hostname']
+        self.client['aws_region'] = self.config['client']['aws_region']
         self.client['ipaddress'] = self.config['client']['ip']
         self.client['oid_rx'] = self.config['client']['oid_rx']
         self.client['oid_tx'] = self.config['client']['oid_tx']
