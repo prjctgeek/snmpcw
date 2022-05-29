@@ -2,6 +2,7 @@
 import click
 import logging
 from client import *
+from pathlib import Path
 
 # logger config
 logger = logging.getLogger()
@@ -22,7 +23,7 @@ def put_cw_data(boto_client, data):
         MetricData=[
             {
                 'MetricName': '{}TransmissionBytes'.format(data['interface']),
-                'Dimensions':[
+                'Dimensions': [
                     {
                         'Name': 'hostname',
                         'Value': data['hostname']
@@ -55,13 +56,14 @@ def query():
 
 
 @query.command()
-def once():
+@click.option("-c", "--config-file", default=str(Path.home()) + "/.config/snmpcw/config", help="Config file")
+def once(config_file):
     """
     Run one snmp poll/CW update and exit.
     :return:
     """
     print("Snmp CloudWatch starting in one-shot mode")
-    config = Config("sample.config")
+    config = Config(config_file)
     client = Client(config)
     boto_client = boto3.client('cloudwatch', region_name=config.client['aws_region'])
     print(client.once(put_cw_data, boto_client))
@@ -69,14 +71,15 @@ def once():
 
 @query.command()
 @click.option("-w", "--wait-time", help="Time to wait between polling in seconds. Default 300", default=300)
-def poll(wait_time):
+@click.option("-c", "--config-file", default=str(Path.home()) + "/.config/snmpcw/config", help="Config file")
+def poll(wait_time, config_file):
     """
     Repeatedly SNMP poll and send data to cloudwatch, sleeping --wait-time seconds.
     :param wait_time:
     :return:
     """
     print(f"Snmp CloudWatch starting in polling mode; sleeping {wait_time}seconds between polls.")
-    config = Config("sample.config")
+    config = Config(config_file)
     client = Client(config)
     boto_client = boto3.client('cloudwatch', region_name=config.client['aws_region'])
     try:

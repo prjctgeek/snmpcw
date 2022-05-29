@@ -1,14 +1,15 @@
-
 import boto3
 import ipaddress
 import configparser
+import logging
 from time import sleep
 from pysnmp.hlapi import *
 from botocore.exceptions import ClientError
 
+logger = logging.getLogger(__name__)
+
 
 class Config:
-
     client = {}
 
     def __init__(self, file_name):
@@ -35,13 +36,17 @@ class Result:
     Result object from PySNMP
     with the hostname injected in (we could just poll for that too?).
     """
+
     def __init__(self, hostname, tr):
         (error_indication, error_status, error_index, var_binds) = tr
-        self._data={"hostname": hostname,
-                    "error_indication":error_indication,
-                    "error_status":error_status,
-                    "error_index":error_index,
-                    "var_binds":var_binds}
+        if error_indication:
+            logging.error(error_status, error_indication)
+            raise AttributeError
+        self._data = {"hostname": hostname,
+                      "error_indication": error_indication,
+                      "error_status": error_status,
+                      "error_index": error_index,
+                      "var_binds": var_binds}
 
     def get_value_by_oid(self, oid):
         """
@@ -70,7 +75,7 @@ class Result:
 class Client:
     results = {}
 
-    def __init__(self, config:Config):
+    def __init__(self, config: Config):
         self.config = config
 
     def once(self, put_data_cb, boto_client):
@@ -111,9 +116,7 @@ class Client:
             ObjectType(ObjectIdentity(self.config.client['oid_rx'])),
             ObjectType(ObjectIdentity(self.config.client['interface'])),
         )
-
-        self.results=Result(self.config.client['hostname'], next(iterator))
-        logging.debug(self.results.get_value_by_oid(self.config.client['oid_tx']))
+        self.results = Result(self.config.client['hostname'], next(iterator))
 
     def get_data(self):
         """
@@ -125,4 +128,3 @@ class Client:
                 "interface": self.results.get_value_by_oid(self.config.client['interface']),
                 "rx_mbytes": self.results.get_value_by_oid(self.config.client['oid_rx']),
                 "tx_mbytes": self.results.get_value_by_oid(self.config.client['oid_tx'])}
-
